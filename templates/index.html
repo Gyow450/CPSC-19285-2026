@@ -177,6 +177,7 @@
 
         .result-section {
             margin-bottom: 16px;
+            white-space: pre-line;
         }
 
         .result-section h3 {
@@ -484,8 +485,9 @@
             return parts.join("；");
         }
 
-        function buildResultText(score) {
-            let text = `腐蚀防护系统质量评价得分为${score.toFixed(2)}，`;
+        function buildResultText(a_text,score) {
+            let text = a_text + "\n";
+            text += `腐蚀防护系统质量评价得分为${score.toFixed(2)}，`;
             if (score >= 90) {
                 text += "等级评价为“1”级，系统功能完好，满足设计要求，在6年的检验周期内能有效使用";
             } else if (score >= 80) {
@@ -540,7 +542,7 @@
                 }
 
                 document.getElementById("inputData").textContent = formatDataText(formData);
-                document.getElementById("resultText").textContent = buildResultText(data.score);
+                document.getElementById("resultText").textContent = buildResultText(data.a_text,data.score);
                 renderMatrix(data.matrix);
                 resultBox.classList.add("show");
                 resultBox.scrollIntoView({ behavior: "smooth", block: "nearest" });

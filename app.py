@@ -47,12 +47,13 @@ def calculate():
 
         data_obj = CPSC_Data(**params)
         calc = PipCalculate(data_obj)
-        matrix, score, _ = calc.calculate()
-
+        matrix, score, a_vec,_ = calc.calculate()
+        a_text = f"结果向量A = [ {', '.join(f'{x:.4f}' for x in a_vec)} ]"
         return jsonify({
             "success": True,
             "score": round(float(score), 2),
-            "matrix": matrix.tolist()   # 5×4 嵌套数组
+            "matrix": matrix.tolist(),  # 5×4 嵌套数组
+            "a_text": a_text  # 1×4 数组
         })
 
     except ValueError as e:

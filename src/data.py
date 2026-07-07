@@ -1,12 +1,13 @@
 import json
 from dataclasses import dataclass, asdict
 from functools import lru_cache, total_ordering
-from typing import Sequence
+from typing import Sequence, Self
 
 import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 from scipy.interpolate import CubicSpline
+from pydantic import BaseModel, Field,model_validator
 
 from utils import resource_path
 
@@ -181,8 +182,8 @@ class PipCalculate:
         v_soil: V_membership,
         v_stray: V_membership,
         v_dra: V_membership,
-    ) -> tuple[NDArray[np.float64], float, dict[str, float | str | None]]:
-        """根据隶属向量计算隶属矩阵，最终得分，原输入参数"""
+    ) -> tuple[NDArray[np.float64], float, NDArray[np.float64],CPSC_Data]:
+        """根据隶属向量计算隶属矩阵，最终得分，结果向量，原输入参数对象"""
         R_matrix = np.array([v_coat, v_cp, v_soil, v_stray, v_dra])
         R_matrix = np.where(np.abs(R_matrix) < 1e-5, 0.0, R_matrix)
         v_a = WEIGHTS @ R_matrix
@@ -192,10 +193,10 @@ class PipCalculate:
         s_l = np.sum(v_a * SCORE_LOW) / np.sum(v_a)
         s_ = (s_h + s_m + s_l) / 3.0
 
-        return R_matrix, s_, asdict(self.p)
+        return R_matrix, s_, v_a, self.p
     
-    def calculate(self) -> tuple[NDArray[np.float64], float, dict[str, float | str | None]]:
-        """返回隶属矩阵、最终得分，原输入参数"""
+    def calculate(self) -> tuple[NDArray[np.float64], float, NDArray[np.float64], CPSC_Data]:
+        """返回隶属矩阵、最终得分，结果向量，原输入参数对象"""
         config = _load_config()
 
         v_coat = self._calc_coating(config)
@@ -206,30 +207,32 @@ class PipCalculate:
 
         return self._score(v_coat, v_cp, v_soil, v_stray, v_dra)
 
-@dataclass
-class CPSC_Data:
+# @dataclass
+class CPSC_Data(BaseModel):
     """全体参数类"""
-    pip_d: float | None = None
-    c_type: str | None = None
-    c_rg: float | None = None
-    c_p: float | None = None
-    c_y: float | None = None
-    cp_exist: str | None = None
-    cp_value: float | None = None
-    soil_n: float | None = None
-    soil_rho: float | None = None
-    p_move_ir: float | None = None
-    p_move_noir: float | None = None
-    dc_stray: float | None = None
-    ac_stray: float | None = None
-    drainage: str | None = None
+    model_config = {"populate_by_name": True}
 
-    def __post_init__(self):
-        errors = self._validate()
-        if errors:
-            raise ValueError("；".join(errors))
+    pip_d: float | None = Field(default = None,alias="管径（mm）")
+    c_type: str | None = Field(default = None,alias="防腐层类型")
+    c_rg: float | None = Field(default = None,alias="防腐层绝缘电阻率Rg值（kΩ·㎡）")
+    c_p: float | None = Field(default = None,alias="防腐层破损点密度P值（处/100m）")
+    c_y: float | None = Field(default = None,alias="防腐层电流衰减率Y值（dB/m）")
+    cp_exist: str | None = Field(default = None,alias="是否建设有阴极保护")
+    cp_value: float | None = Field(default = None,alias="阴极保护率")
+    soil_n: float | None = Field(default = None,alias="土壤腐蚀性评价N值")
+    soil_rho: float | None = Field(default = None,alias="土壤电阻率（Ω·m）")
+    p_move_ir: float | None = Field(default = None,alias="含IR降的电位正向偏移（mV）")
+    p_move_noir: float | None = Field(default = None,alias="无IR降的电位正向偏移（mV）")
+    dc_stray: float | None = Field(default = None,alias="阴保管道电位正于要求的比例或无阴保管道正于自然电位20mV的比例")
+    ac_stray: float | None = Field(default = None,alias="交流电流密度")
+    drainage: str | None = Field(default = None,alias="排流效果")
 
-    def _validate(self) -> None:
+    # def __post_init__(self):
+    #     errors = self._validate()
+    #     if errors:
+    #         raise ValueError("；".join(errors))
+    @model_validator(mode="after")
+    def _validate(self) -> Self:
         errors: list[str] = []
         if not (self.pip_d and self.c_type):
             errors.append("缺少管径,防腐层类型")
@@ -248,28 +251,29 @@ class CPSC_Data:
             errors.append("缺少排流评价")
         if errors:
             raise ValueError('；'.join(errors))
+        return self
 
-    @classmethod
-    def alias_name_trans(cls, reverse: bool = False) -> dict[str, str]:
-        """字段名：别名构成的字典，或相反"""
-        mapping_table: list[tuple[str, str]] = [
-            ("pip_d", "管径（mm）"),
-            ("c_type", "防腐层类型"),
-            ("c_rg", "防腐层绝缘电阻率Rg值（kΩ·㎡）"),
-            ("c_p", "防腐层破损点密度P值（处/100m）"),
-            ("c_y", "防腐层电流衰减率Y值（dB/m）"),
-            ("cp_value", "阴极保护率"),
-            ("cp_exist", "是否建设有阴极保护"),
-            ("dc_stray", "阴保管道电位正于要求的比例或无阴保管道正于自然电位20mV的比例"),
-            ("ac_stray", "交流电流密度"),
-            ("soil_n", "土壤腐蚀性评价N值"),
-            ("soil_rho", "土壤电阻率（Ω·m）"),
-            ("p_move_ir", "含IR降的电位正向偏移（mV）"),
-            ("p_move_noir", "无IR降的电位正向偏移（mV）"),
-            ("drainage", "排流效果"),
-        ]
-        if reverse:
-            return {v: k for k, v in mapping_table}
-        return dict(mapping_table)
+    # @classmethod
+    # def alias_name_trans(cls, reverse: bool = False) -> dict[str, str]:
+    #     """字段名：别名构成的字典，或相反"""
+    #     mapping_table: list[tuple[str, str]] = [
+    #         ("pip_d", "管径（mm）"),
+    #         ("c_type", "防腐层类型"),
+    #         ("c_rg", "防腐层绝缘电阻率Rg值（kΩ·㎡）"),
+    #         ("c_p", "防腐层破损点密度P值（处/100m）"),
+    #         ("c_y", "防腐层电流衰减率Y值（dB/m）"),
+    #         ("cp_value", "阴极保护率"),
+    #         ("cp_exist", "是否建设有阴极保护"),
+    #         ("dc_stray", "阴保管道电位正于要求的比例或无阴保管道正于自然电位20mV的比例"),
+    #         ("ac_stray", "交流电流密度"),
+    #         ("soil_n", "土壤腐蚀性评价N值"),
+    #         ("soil_rho", "土壤电阻率（Ω·m）"),
+    #         ("p_move_ir", "含IR降的电位正向偏移（mV）"),
+    #         ("p_move_noir", "无IR降的电位正向偏移（mV）"),
+    #         ("drainage", "排流效果"),
+    #     ]
+    #     if reverse:
+    #         return {v: k for k, v in mapping_table}
+    #     return dict(mapping_table)
 
    
