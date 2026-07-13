@@ -34,7 +34,7 @@ def calculate():
             "soil_rho": _get_float(request.form, "soil_rho"),
             "p_move_ir": _get_float(request.form, "stable_stray_ir"),
             "p_move_noir": _get_float(request.form, "stable_stray_noir"),
-            "dc_stray": _get_float(request.form, "dc_stray"),
+            "dc_stray": _get_float(request.form, "dc_stray"),   # 注意：后面要 /100
             "ac_stray": _get_float(request.form, "ac_stray"),
             "drainage": _get_str(request.form, "drainage"),
         }
@@ -47,13 +47,14 @@ def calculate():
 
         data_obj = CPSC_Data(**params)
         calc = PipCalculate(data_obj)
-        matrix, score, a_vec,_ = calc.calculate()
+        matrix, matrix_latex, score, a_vec, _  = calc.calculate()
         a_text = f"结果向量A = [ {', '.join(f'{x:.4f}' for x in a_vec)} ]"
         return jsonify({
             "success": True,
             "score": round(float(score), 2),
             "matrix": matrix.tolist(),  # 5×4 嵌套数组
-            "a_text": a_text  # 1×4 数组
+            "a_text": a_text,  # 1×4 数组
+            "matrix_latex": matrix_latex  # LaTeX 格式的矩阵
         })
 
     except ValueError as e:

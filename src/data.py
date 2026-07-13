@@ -1,5 +1,4 @@
 import json
-from dataclasses import dataclass, asdict
 from functools import lru_cache, total_ordering
 from typing import Sequence, Self
 
@@ -11,6 +10,11 @@ from pydantic import BaseModel, Field,model_validator
 
 from utils import resource_path
 
+def matrix_to_latex(arr: NDArray[np.float64], env: str = 'bmatrix') -> str:
+    """numpy 二维数组 → LaTeX 矩阵公式"""
+    lines = [' & '.join(f"{x:.3f}" for x in row) for row in arr]
+    body = ' \\\\\n'.join(lines)
+    return f"\\begin{{{env}}}\n{body}\n\\end{{{env}}}"
 
 class B_matrix(np.ndarray):
     """相关矩阵类"""
@@ -175,7 +179,7 @@ class PipCalculate:
         """排流隶属向量"""
         return V_membership() if self.p.drainage == "有效" else V_membership(reverse=True)
     
-    def _score(
+    def _result(
         self,
         v_coat: V_membership,
         v_cp: V_membership,
@@ -183,7 +187,7 @@ class PipCalculate:
         v_stray: V_membership,
         v_dra: V_membership,
     ) -> tuple[NDArray[np.float64], float, NDArray[np.float64],CPSC_Data]:
-        """根据隶属向量计算隶属矩阵，最终得分，结果向量，原输入参数对象"""
+        """返回隶属矩阵及其LaTeX公式，最终得分，结果向量，原输入参数对象"""
         R_matrix = np.array([v_coat, v_cp, v_soil, v_stray, v_dra])
         R_matrix = np.where(np.abs(R_matrix) < 1e-5, 0.0, R_matrix)
         v_a = WEIGHTS @ R_matrix
@@ -193,10 +197,10 @@ class PipCalculate:
         s_l = np.sum(v_a * SCORE_LOW) / np.sum(v_a)
         s_ = (s_h + s_m + s_l) / 3.0
 
-        return R_matrix, s_, v_a, self.p
-    
-    def calculate(self) -> tuple[NDArray[np.float64], float, NDArray[np.float64], CPSC_Data]:
-        """返回隶属矩阵、最终得分，结果向量，原输入参数对象"""
+        return R_matrix, matrix_to_latex(R_matrix), s_, v_a, self.p
+
+    def calculate(self) -> tuple[NDArray[np.float64], str, float, NDArray[np.float64], CPSC_Data]:
+        """返回隶属矩阵及其LaTeX公式、最终得分，结果向量，原输入参数对象"""
         config = _load_config()
 
         v_coat = self._calc_coating(config)
@@ -205,7 +209,7 @@ class PipCalculate:
         v_stray = self._calc_stray(config)
         v_dra = self._calc_drainage()
 
-        return self._score(v_coat, v_cp, v_soil, v_stray, v_dra)
+        return self._result(v_coat, v_cp, v_soil, v_stray, v_dra)
 
 # @dataclass
 class CPSC_Data(BaseModel):
@@ -253,27 +257,6 @@ class CPSC_Data(BaseModel):
             raise ValueError('；'.join(errors))
         return self
 
-    # @classmethod
-    # def alias_name_trans(cls, reverse: bool = False) -> dict[str, str]:
-    #     """字段名：别名构成的字典，或相反"""
-    #     mapping_table: list[tuple[str, str]] = [
-    #         ("pip_d", "管径（mm）"),
-    #         ("c_type", "防腐层类型"),
-    #         ("c_rg", "防腐层绝缘电阻率Rg值（kΩ·㎡）"),
-    #         ("c_p", "防腐层破损点密度P值（处/100m）"),
-    #         ("c_y", "防腐层电流衰减率Y值（dB/m）"),
-    #         ("cp_value", "阴极保护率"),
-    #         ("cp_exist", "是否建设有阴极保护"),
-    #         ("dc_stray", "阴保管道电位正于要求的比例或无阴保管道正于自然电位20mV的比例"),
-    #         ("ac_stray", "交流电流密度"),
-    #         ("soil_n", "土壤腐蚀性评价N值"),
-    #         ("soil_rho", "土壤电阻率（Ω·m）"),
-    #         ("p_move_ir", "含IR降的电位正向偏移（mV）"),
-    #         ("p_move_noir", "无IR降的电位正向偏移（mV）"),
-    #         ("drainage", "排流效果"),
-    #     ]
-    #     if reverse:
-    #         return {v: k for k, v in mapping_table}
-    #     return dict(mapping_table)
+
 
    
