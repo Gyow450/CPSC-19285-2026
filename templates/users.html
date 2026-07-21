@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}用户管理 - 埋地钢质管道腐蚀防护系统质量等级评价{% endblock %}
+
+{% block extra_css %}
+<style>
+    .add-user-form {
+        margin-bottom: 24px;
+        padding: 16px;
+        background: #f6ffed;
+        border-radius: 6px;
+    }
+
+    .add-user-form h3 {
+        margin-top: 0;
+        font-size: 1rem;
+        color: #262626;
+    }
+
+    .add-user-row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .add-user-row input[type="text"],
+    .add-user-row input[type="password"] {
+        min-width: 160px;
+    }
+
+    .add-user-row label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        color: #262626;
+    }
+
+    .user-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .user-actions input[type="password"] {
+        width: 140px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 style="margin-top:0;">用户管理</h2>
+
+    {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+
+    <!-- 添加用户表单 -->
+    <form class="add-user-form" action="{{ url_for('user_add') }}" method="POST">
+        <h3>添加用户</h3>
+        <div class="add-user-row">
+            <input type="text" name="username" placeholder="用户名" required>
+            <input type="password" name="password" placeholder="密码" required>
+            <label>
+                <input type="checkbox" name="is_admin" value="1"> 管理员
+            </label>
+            <button type="submit" class="btn btn-sm">添加</button>
+        </div>
+    </form>
+
+    <!-- 用户列表 -->
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>用户名</th>
+                <th>权限</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td>{{ u[0] }}</td>
+                <td>{{ u[1] }}</td>
+                <td>{% if u[2] %}管理员{% else %}普通用户{% endif %}</td>
+                <td>
+                    <div class="user-actions">
+                        <!-- 改密码 -->
+                        <form action="{{ url_for('user_reset', user_id=u[0]) }}" method="POST">
+                            <input type="password" name="new_password" placeholder="新密码" required>
+                            <button type="submit" class="btn btn-sm">重置密码</button>
+                        </form>
+
+                        <!-- 删除（不能删自己） -->
+                        {% if u[1] != session.get("username") %}
+                        <form action="{{ url_for('user_delete', user_id=u[0]) }}" method="POST" onsubmit="return confirm('确定删除用户 {{ u[1] }}？');">
+                            <button type="submit" class="btn btn-danger btn-sm">删除</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div style="margin-top:16px;">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">返回首页</a>
+    </div>
+</div>
+{% endblock %}

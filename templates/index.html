@@ -1,603 +1,571 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>基于GB/T 19285-2026 的埋地钢质管道腐蚀防护系统质量等级评价</title>
-    <style>
-        * {
-            box-sizing: border-box;
+{% extends "base.html" %}
+
+{% block title %}基于GB/T 19285-2026 的埋地钢质管道腐蚀防护系统质量等级评价{% endblock %}
+
+{% block extra_css %}
+<style>
+    .evaluate-page form {
+        background: #fff;
+        border-radius: 8px;
+        padding: 24px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    .evaluate-page fieldset {
+        border: 1px solid #d9d9d9;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        padding: 16px;
+    }
+
+    .evaluate-page legend {
+        font-weight: 600;
+        padding: 0 8px;
+        color: #262626;
+    }
+
+    .evaluate-page .form-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 12px;
+    }
+
+    .evaluate-page .form-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .evaluate-page .form-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1 1 220px;
+        margin-bottom: 0;
+    }
+
+    .evaluate-page .form-group label {
+        white-space: nowrap;
+        font-size: 0.95rem;
+        color: #595959;
+        margin-bottom: 0;
+    }
+
+    .evaluate-page input[type="text"],
+    .evaluate-page input[type="number"] {
+        flex: 1;
+        min-width: 120px;
+        padding: 8px 10px;
+        border: 1px solid #d9d9d9;
+        border-radius: 4px;
+        font-size: 0.95rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .evaluate-page input[type="text"]:focus,
+    .evaluate-page input[type="number"]:focus {
+        outline: none;
+        border-color: #40a9ff;
+        box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.15);
+    }
+
+    .evaluate-page input::placeholder {
+        color: #bfbfbf;
+    }
+
+    .evaluate-page .radio-group {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .evaluate-page .radio-group label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        color: #262626;
+    }
+
+    .evaluate-page input[type="radio"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        accent-color: #1890ff;
+    }
+
+    .evaluate-page .hint {
+        width: 100%;
+        font-size: 0.85rem;
+        color: #8c8c8c;
+        margin-top: 4px;
+    }
+
+    .evaluate-page .actions {
+        display: flex;
+        justify-content: center;
+        margin-top: 24px;
+    }
+
+    .evaluate-page button[type="submit"] {
+        background-color: #1890ff;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        padding: 10px 40px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .evaluate-page button[type="submit"]:hover {
+        background-color: #40a9ff;
+    }
+
+    .evaluate-page button[type="submit"]:active {
+        background-color: #096dd9;
+    }
+
+    .evaluate-page .result {
+        display: none;
+        margin-top: 24px;
+        background: #f6ffed;
+        border: 1px solid #b7eb8f;
+        border-radius: 8px;
+        padding: 20px;
+    }
+
+    .evaluate-page .result.show {
+        display: block;
+    }
+
+    .evaluate-page .result h2 {
+        margin-top: 0;
+        font-size: 1.1rem;
+        color: #389e0d;
+    }
+
+    .evaluate-page .result-section {
+        margin-bottom: 16px;
+        white-space: pre-line;
+    }
+
+    .evaluate-page .result-section h3 {
+        font-size: 0.95rem;
+        margin: 0 0 8px;
+        color: #262626;
+    }
+
+    .evaluate-page .result-text {
+        background: #fff;
+        border: 1px solid #d9d9d9;
+        border-radius: 4px;
+        padding: 10px;
+        font-size: 0.95rem;
+        min-height: 48px;
+    }
+
+    .evaluate-page table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #fff;
+        font-size: 0.9rem;
+    }
+
+    .evaluate-page th,
+    .evaluate-page td {
+        border: 1px solid #d9d9d9;
+        padding: 8px;
+        text-align: center;
+    }
+
+    .evaluate-page th {
+        background: #fafafa;
+        font-weight: 600;
+    }
+
+    .evaluate-page .btn-copy {
+        margin-top: 10px;
+        padding: 6px 16px;
+        font-size: 14px;
+        cursor: pointer;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background: #f5f5f5;
+    }
+
+    .evaluate-page .btn-copy:hover {
+        background: #e8e8e8;
+    }
+
+    .evaluate-page .copy-feedback {
+        margin-left: 10px;
+        font-size: 13px;
+        display: none;
+    }
+
+    .evaluate-page .copy-feedback.success { color: green; }
+    .evaluate-page .copy-feedback.error   { color: red; }
+
+    .evaluate-page .error {
+        color: #cf1322;
+        background: #fff1f0;
+        border: 1px solid #ffa39e;
+        border-radius: 4px;
+        padding: 12px;
+        margin-top: 16px;
+        display: none;
+    }
+
+    .evaluate-page .error.show {
+        display: block;
+    }
+
+    @media (max-width: 640px) {
+        .evaluate-page .form-group {
+            flex: 1 1 100%;
         }
+    }
+</style>
+{% endblock %}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f5f6f7;
-            color: #333;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 24px;
-        }
-
-        header h1 {
-            font-size: 1.5rem;
-            margin: 0;
-            color: #1a1a1a;
-        }
-
-        form {
-            background: #fff;
-            border-radius: 8px;
-            padding: 24px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        }
-
-        fieldset {
-            border: 1px solid #d9d9d9;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            padding: 16px;
-        }
-
-        legend {
-            font-weight: 600;
-            padding: 0 8px;
-            color: #262626;
-        }
-
-        .form-row {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 12px;
-        }
-
-        .form-row:last-child {
-            margin-bottom: 0;
-        }
-
-        .form-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex: 1 1 220px;
-        }
-
-        .form-group label {
-            white-space: nowrap;
-            font-size: 0.95rem;
-            color: #595959;
-        }
-
-        input[type="text"],
-        input[type="number"] {
-            flex: 1;
-            min-width: 120px;
-            padding: 8px 10px;
-            border: 1px solid #d9d9d9;
-            border-radius: 4px;
-            font-size: 0.95rem;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        input[type="text"]:focus,
-        input[type="number"]:focus {
-            outline: none;
-            border-color: #40a9ff;
-            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.15);
-        }
-
-        input::placeholder {
-            color: #bfbfbf;
-        }
-
-        .radio-group {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-
-        .radio-group label {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            color: #262626;
-        }
-
-        input[type="radio"] {
-            width: 16px;
-            height: 16px;
-            cursor: pointer;
-            accent-color: #1890ff;
-        }
-
-        .hint {
-            width: 100%;
-            font-size: 0.85rem;
-            color: #8c8c8c;
-            margin-top: 4px;
-        }
-
-        .actions {
-            display: flex;
-            justify-content: center;
-            margin-top: 24px;
-        }
-
-        button[type="submit"] {
-            background-color: #1890ff;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            padding: 10px 40px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        button[type="submit"]:hover {
-            background-color: #40a9ff;
-        }
-
-        button[type="submit"]:active {
-            background-color: #096dd9;
-        }
-
-        .result {
-            display: none;
-            margin-top: 24px;
-            background: #f6ffed;
-            border: 1px solid #b7eb8f;
-            border-radius: 8px;
-            padding: 20px;
-        }
-
-        .result.show {
-            display: block;
-        }
-
-        .result h2 {
-            margin-top: 0;
-            font-size: 1.1rem;
-            color: #389e0d;
-        }
-
-        .result-section {
-            margin-bottom: 16px;
-            white-space: pre-line;
-        }
-
-        .result-section h3 {
-            font-size: 0.95rem;
-            margin: 0 0 8px;
-            color: #262626;
-        }
-
-        .result-text {
-            background: #fff;
-            border: 1px solid #d9d9d9;
-            border-radius: 4px;
-            padding: 10px;
-            font-size: 0.95rem;
-            min-height: 48px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #fff;
-            font-size: 0.9rem;
-        }
-
-        th, td {
-            border: 1px solid #d9d9d9;
-            padding: 8px;
-            text-align: center;
-        }
-
-        th {
-            background: #fafafa;
-            font-weight: 600;
-        }
-
-        .btn-copy {
-            margin-top: 10px;
-            padding: 6px 16px;
-            font-size: 14px;
-            cursor: pointer;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            background: #f5f5f5;
-        }
-        .btn-copy:hover {
-            background: #e8e8e8;
-        }
-        .copy-feedback {
-            margin-left: 10px;
-            font-size: 13px;
-            display: none;
-        }
-        .copy-feedback.success { color: green; }
-        .copy-feedback.error   { color: red; }
-
-        .error {
-            color: #cf1322;
-            background: #fff1f0;
-            border: 1px solid #ffa39e;
-            border-radius: 4px;
-            padding: 12px;
-            margin-top: 16px;
-            display: none;
-        }
-
-        .error.show {
-            display: block;
-        }
-
-        @media (max-width: 640px) {
-            .form-group {
-                flex: 1 1 100%;
-            }
-
-            header h1 {
-                font-size: 1.2rem;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header>
-            <h1>基于GB/T 19285-2026 的埋地钢质管道腐蚀防护系统质量等级评价</h1>
-        </header>
-
-        <form id="evaluateForm">
-            <!-- 防腐层参数 -->
-            <fieldset>
-                <legend>防腐层参数</legend>
-                <div class="form-row">
-                    <div class="radio-group">
-                        <label>
-                            <input type="radio" name="coat_type" value="PE防腐层" required>
-                            PE防腐层
-                        </label>
-                        <label>
-                            <input type="radio" name="coat_type" value="沥青防腐层">
-                            沥青防腐层
-                        </label>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="pip_d">管径（mm）</label>
-                        <input type="number" id="pip_d" name="pip_d" min="25" max="10000" step="1" placeholder="请输入25-10000的数值">
-                    </div>
-                    <div class="form-group">
-                        <label for="rg_value">Rg值（kΩ·m²）</label>
-                        <input type="number" id="rg_value" name="rg_value" min="0.1" max="10000" step="0.01" placeholder="请输入0.1-10000的数值">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="y_value">Y值（dB/m）</label>
-                        <input type="number" id="y_value" name="y_value" min="0.0" max="0.5" step="0.001" placeholder="请输入0.0-0.5的数值">
-                    </div>
-                    <div class="form-group">
-                        <label for="p_value">P值（处/100m）</label>
-                        <input type="number" id="p_value" name="p_value" min="0.0" max="5.0" step="0.1" placeholder="请输入0.0-5.0的数值">
-                    </div>
-                </div>
-            </fieldset>
-
-            <!-- 阴极保护参数 -->
-            <fieldset>
-                <legend>阴极保护参数</legend>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="cp_rate">保护率（%）</label>
-                        <input type="number" id="cp_rate" name="cp_rate" min="0.0" max="100.0" step="0.1" placeholder="请输入0.0-100.0的数值">
-                    </div>
-                </div>
-            </fieldset>
-
-            <!-- 土壤腐蚀性 -->
-            <fieldset>
-                <legend>土壤腐蚀性</legend>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="soil_n">土壤腐蚀性N值</label>
-                        <input type="number" id="soil_n" name="soil_n" min="0.1" max="35.0" step="0.1" placeholder="请输入0.1-35.0的数值">
-                    </div>
-                </div>
-            </fieldset>
-
-            <!-- 杂散电流干扰 -->
-            <fieldset>
-                <legend>杂散电流干扰</legend>
-                <div class="form-row">
-                    <div class="radio-group">
-                        <label>
-                            <input type="radio" name="cp_exist" value="有阴保" required>
-                            有阴极保护
-                        </label>
-                        <label>
-                            <input type="radio" name="cp_exist" value="无阴保">
-                            未实施阴极保护
-                        </label>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="soil_rho">土壤电阻率（Ω·m）</label>
-                        <input type="number" id="soil_rho" name="soil_rho" min="0" max="10000" step="1" placeholder="请输入0~10000的数值">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="stable_stray_ir">稳态直流干扰—含IR降电位正向偏移（mV）</label>
-                        <input type="number" id="stable_stray_ir" name="stable_stray_ir" min="-10000" max="10000" step="1" placeholder="请输入-10000~+10000的数值">
-                    </div>
-                    <div class="form-group">
-                        <label for="stable_stray_noir">稳态直流干扰—无IR降电位正向偏移（mV）</label>
-                        <input type="number" id="stable_stray_noir" name="stable_stray_noir" min="-10000" max="10000" step="1" placeholder="请输入-10000~+10000的数值">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="dc_stray">动态直流干扰-电位正于阴保要求（或正于自然电位20mV）的占比%</label>
-                        <input type="number" id="dc_stray" name="dc_stray" min="0.0" max="100.0" step="0.1" placeholder="请输入0.1-100.0的数值">
-                    </div>
-                    <div class="form-group">
-                        <label for="ac_stray">交流电流密度（A/m²）</label>
-                        <input type="number" id="ac_stray" name="ac_stray" min="0" max="1000" step="0.01" placeholder="请输入0-1000的数值">
-                    </div>
-                </div>
-            </fieldset>
-
-            <!-- 排流效果 -->
-            <fieldset>
-                <legend>排流效果</legend>
-                <div class="form-row">
-                    <div class="radio-group">
-                        <label>
-                            <input type="radio" name="drainage" value="有效" required>
-                            有效
-                        </label>
-                        <label>
-                            <input type="radio" name="drainage" value="无效">
-                            无效
-                        </label>
-                    </div>
-                    <span class="hint">排流效果评价（当杂散电流干扰评价为弱时有效，否则无效）</span>
-                </div>
-            </fieldset>
-
-            <div class="actions">
-                <button type="submit">计算</button>
-            </div>
-        </form>
-
-        <div id="errorBox" class="error"></div>
-
-        <div id="resultBox" class="result">
-            <h2>评价结果</h2>
-            <div class="result-section">
-                <h3>输入数据</h3>
-                <div id="inputData" class="result-text"></div>
-            </div>
-            <div class="result-section">
-                <h3>评价文本</h3>
-                <div id="resultText" class="result-text"></div>
-            </div>
-            <div class="result-section">
-                <h3>隶属矩阵</h3>
-                <table id="matrixTable">
-                    <thead>
-                        <tr>
-                            <th>评价指标</th>
-                            <th>等级1</th>
-                            <th>等级2</th>
-                            <th>等级3</th>
-                            <th>等级4</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-                <button id="copyLatexBtn" class="btn-copy" onclick="copyLatex()">复制LaTeX</button>
-                <span id="copyFeedback" class="copy-feedback"></span>
-            </div>
-        </div>
+{% block content %}
+<div class="evaluate-page">
+    <div class="page-header">
+        <h1>基于GB/T 19285-2026 的埋地钢质管道腐蚀防护系统质量等级评价</h1>
     </div>
 
-    <script>
-        const aliasMap = {
-            pip_d: "管径（mm）",
-            coat_type: "防腐层类型",
-            rg_value: "防腐层绝缘电阻率Rg值（kΩ·㎡）",
-            p_value: "防腐层破损点密度P值（处/100m）",
-            y_value: "防腐层电流衰减率Y值（dB/m）",
-            cp_rate: "阴极保护率%",
-            cp_exist: "是否建设有阴极保护",
-            dc_stray: "阴保管道电位正于要求的比例（无阴保管道正于自然电位20mV的比例）%",
-            ac_stray: "交流电流密度",
-            soil_n: "土壤腐蚀性评价N值",
-            soil_rho: "土壤电阻率（Ω·m）",
-            stable_stray_ir: "含IR降的电位正向偏移（mV）",
-            stable_stray_noir: "无IR降的电位正向偏移（mV）",
-            drainage: "排流效果"
-        };
+    <form id="evaluateForm">
+        <!-- 防腐层参数 -->
+        <fieldset>
+            <legend>防腐层参数</legend>
+            <div class="form-row">
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="coat_type" value="PE防腐层" required>
+                        PE防腐层
+                    </label>
+                    <label>
+                        <input type="radio" name="coat_type" value="沥青防腐层">
+                        沥青防腐层
+                    </label>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="pip_d">管径（mm）</label>
+                    <input type="number" id="pip_d" name="pip_d" min="25" max="10000" step="1" placeholder="请输入25-10000的数值">
+                </div>
+                <div class="form-group">
+                    <label for="rg_value">Rg值（kΩ·m²）</label>
+                    <input type="number" id="rg_value" name="rg_value" min="0.1" max="10000" step="0.01" placeholder="请输入0.1-10000的数值">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="y_value">Y值（dB/m）</label>
+                    <input type="number" id="y_value" name="y_value" min="0.0" max="0.5" step="0.001" placeholder="请输入0.0-0.5的数值">
+                </div>
+                <div class="form-group">
+                    <label for="p_value">P值（处/100m）</label>
+                    <input type="number" id="p_value" name="p_value" min="0.0" max="5.0" step="0.1" placeholder="请输入0.0-5.0的数值">
+                </div>
+            </div>
+        </fieldset>
 
-        const matrixHeaders = [
-            "外防腐层状况",
-            "阴极保护有效性",
-            "土壤腐蚀性",
-            "杂散电流干扰",
-            "排流效果"
-        ];
+        <!-- 阴极保护参数 -->
+        <fieldset>
+            <legend>阴极保护参数</legend>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="cp_rate">保护率（%）</label>
+                    <input type="number" id="cp_rate" name="cp_rate" min="0.0" max="100.0" step="0.1" placeholder="请输入0.0-100.0的数值">
+                </div>
+            </div>
+        </fieldset>
 
-        const form = document.getElementById("evaluateForm");
-        const errorBox = document.getElementById("errorBox");
-        const resultBox = document.getElementById("resultBox");
+        <!-- 土壤腐蚀性 -->
+        <fieldset>
+            <legend>土壤腐蚀性</legend>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="soil_n">土壤腐蚀性N值</label>
+                    <input type="number" id="soil_n" name="soil_n" min="0.1" max="35.0" step="0.1" placeholder="请输入0.1-35.0的数值">
+                </div>
+            </div>
+        </fieldset>
 
-        function validateForm(formData) {
-            const errors = [];
+        <!-- 杂散电流干扰 -->
+        <fieldset>
+            <legend>杂散电流干扰</legend>
+            <div class="form-row">
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="cp_exist" value="有阴保" required>
+                        有阴极保护
+                    </label>
+                    <label>
+                        <input type="radio" name="cp_exist" value="无阴保">
+                        未实施阴极保护
+                    </label>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="soil_rho">土壤电阻率（Ω·m）</label>
+                    <input type="number" id="soil_rho" name="soil_rho" min="0" max="10000" step="1" placeholder="请输入0~10000的数值">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="stable_stray_ir">稳态直流干扰—含IR降电位正向偏移（mV）</label>
+                    <input type="number" id="stable_stray_ir" name="stable_stray_ir" min="-10000" max="10000" step="1" placeholder="请输入-10000~+10000的数值">
+                </div>
+                <div class="form-group">
+                    <label for="stable_stray_noir">稳态直流干扰—无IR降电位正向偏移（mV）</label>
+                    <input type="number" id="stable_stray_noir" name="stable_stray_noir" min="-10000" max="10000" step="1" placeholder="请输入-10000~+10000的数值">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="dc_stray">动态直流干扰-电位正于阴保要求（或正于自然电位20mV）的占比%</label>
+                    <input type="number" id="dc_stray" name="dc_stray" min="0.0" max="100.0" step="0.1" placeholder="请输入0.1-100.0的数值">
+                </div>
+                <div class="form-group">
+                    <label for="ac_stray">交流电流密度（A/m²）</label>
+                    <input type="number" id="ac_stray" name="ac_stray" min="0" max="1000" step="0.01" placeholder="请输入0-1000的数值">
+                </div>
+            </div>
+        </fieldset>
 
-            if (!formData.get("coat_type") || !formData.get("pip_d")) {
-                errors.push("缺少管径、防腐层类型");
-            }
+        <!-- 排流效果 -->
+        <fieldset>
+            <legend>排流效果</legend>
+            <div class="form-row">
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="drainage" value="有效" required>
+                        有效
+                    </label>
+                    <label>
+                        <input type="radio" name="drainage" value="无效">
+                        无效
+                    </label>
+                </div>
+                <span class="hint">排流效果评价（当杂散电流干扰评价为弱时有效，否则无效）</span>
+            </div>
+        </fieldset>
 
-            const hasCoatValue = formData.get("rg_value") || formData.get("p_value") || formData.get("y_value");
-            if (!hasCoatValue) {
-                errors.push("缺少外防腐层评价");
-            }
+        <div class="actions">
+            <button type="submit">计算</button>
+        </div>
+    </form>
 
-            const cpExist = formData.get("cp_exist");
-            const dcStray = formData.get("dc_stray");
-            const acStray = formData.get("ac_stray");
-            const pMoveNoir = formData.get("stable_stray_noir");
-            const soilRho = formData.get("soil_rho");
-            const pMoveIr = formData.get("stable_stray_ir");
+    <div id="errorBox" class="error"></div>
 
-            if (!dcStray && !acStray) {
-                if (cpExist === "无阴保" && !pMoveNoir && !(soilRho && pMoveIr)) {
-                    errors.push("缺少杂散电流评价");
-                }
-            }
+    <div id="resultBox" class="result">
+        <h2>评价结果</h2>
+        <div class="result-section">
+            <h3>输入数据</h3>
+            <div id="inputData" class="result-text"></div>
+        </div>
+        <div class="result-section">
+            <h3>评价文本</h3>
+            <div id="resultText" class="result-text"></div>
+        </div>
+        <div class="result-section">
+            <h3>隶属矩阵</h3>
+            <table id="matrixTable">
+                <thead>
+                    <tr>
+                        <th>评价指标</th>
+                        <th>等级1</th>
+                        <th>等级2</th>
+                        <th>等级3</th>
+                        <th>等级4</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <button id="copyLatexBtn" class="btn-copy" onclick="copyLatex()">复制LaTeX</button>
+            <span id="copyFeedback" class="copy-feedback"></span>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
-            if (!cpExist) {
-                errors.push("缺少是否有阴极保护");
-            }
+{% block extra_js %}
+<script>
+    const aliasMap = {
+        pip_d: "管径（mm）",
+        coat_type: "防腐层类型",
+        rg_value: "防腐层绝缘电阻率Rg值（kΩ·㎡）",
+        p_value: "防腐层破损点密度P值（处/100m）",
+        y_value: "防腐层电流衰减率Y值（dB/m）",
+        cp_rate: "阴极保护率%",
+        cp_exist: "是否建设有阴极保护",
+        dc_stray: "阴保管道电位正于要求的比例（无阴保管道正于自然电位20mV的比例）%",
+        ac_stray: "交流电流密度",
+        soil_n: "土壤腐蚀性评价N值",
+        soil_rho: "土壤电阻率（Ω·m）",
+        stable_stray_ir: "含IR降的电位正向偏移（mV）",
+        stable_stray_noir: "无IR降的电位正向偏移（mV）",
+        drainage: "排流效果"
+    };
 
-            if (!formData.get("cp_rate") && cpExist === "有阴保") {
-                errors.push("缺少阴极保护率");
-            }
+    const matrixHeaders = [
+        "外防腐层状况",
+        "阴极保护有效性",
+        "土壤腐蚀性",
+        "杂散电流干扰",
+        "排流效果"
+    ];
 
-            if (!formData.get("soil_n")) {
-                errors.push("缺少土壤腐蚀性得分");
-            }
+    const form = document.getElementById("evaluateForm");
+    const errorBox = document.getElementById("errorBox");
+    const resultBox = document.getElementById("resultBox");
 
-            if (!formData.get("drainage")) {
-                errors.push("缺少排流评价");
-            }
+    function validateForm(formData) {
+        const errors = [];
 
-            return errors;
+        if (!formData.get("coat_type") || !formData.get("pip_d")) {
+            errors.push("缺少管径、防腐层类型");
         }
 
-        function formatDataText(formData) {
-            const parts = [];
-            for (const [key, label] of Object.entries(aliasMap)) {
-                const value = formData.get(key);
-                if (value) {
-                    parts.push(`${label}：${value}`);
-                }
-            }
-            return parts.join("；");
+        const hasCoatValue = formData.get("rg_value") || formData.get("p_value") || formData.get("y_value");
+        if (!hasCoatValue) {
+            errors.push("缺少外防腐层评价");
         }
 
-        function buildResultText(a_text,score) {
-            let text = a_text + "\n";
-            text += `腐蚀防护系统质量评价得分为${score.toFixed(2)}，`;
-            if (score >= 90) {
-                text += "等级评价为“1”级，系统功能完好，满足设计要求，在6年的检验周期内能有效使用";
-            } else if (score >= 80) {
-                text += "等级评价为“2”级，系统基本完好但存在一些不影响防护效果的缺陷，能基本满足设计要求，3年~6年的检验周期内能使用";
-            } else if (score >= 70) {
-                text += "等级评价为“3”级，系统整体状况较差，存在缺陷，不能完全满足设计要求，在使用单位采取适当措施后，可在1年~3年检验周期内在限定的条件下使用";
-            } else {
-                text += "等级评价为“4”级，系统缺陷严重，不能满足设计要求，不能有效防止金属管体腐蚀，使用单位应采取重大维修";
+        const cpExist = formData.get("cp_exist");
+        const dcStray = formData.get("dc_stray");
+        const acStray = formData.get("ac_stray");
+        const pMoveNoir = formData.get("stable_stray_noir");
+        const soilRho = formData.get("soil_rho");
+        const pMoveIr = formData.get("stable_stray_ir");
+
+        if (!dcStray && !acStray) {
+            if (cpExist === "无阴保" && !pMoveNoir && !(soilRho && pMoveIr)) {
+                errors.push("缺少杂散电流评价");
             }
-            return text;
         }
 
-        function renderMatrix(rows) {
-            const tbody = document.querySelector("#matrixTable tbody");
-            tbody.innerHTML = "";
-            rows.forEach((row, i) => {
-                const tr = document.createElement("tr");
-                const th = document.createElement("th");
-                th.textContent = matrixHeaders[i];
-                tr.appendChild(th);
-                row.forEach(value => {
-                    const td = document.createElement("td");
-                    td.textContent = value.toFixed(3);
-                    tr.appendChild(td);
-                });
-                tbody.appendChild(tr);
+        if (!cpExist) {
+            errors.push("缺少是否有阴极保护");
+        }
+
+        if (!formData.get("cp_rate") && cpExist === "有阴保") {
+            errors.push("缺少阴极保护率");
+        }
+
+        if (!formData.get("soil_n")) {
+            errors.push("缺少土壤腐蚀性得分");
+        }
+
+        if (!formData.get("drainage")) {
+            errors.push("缺少排流评价");
+        }
+
+        return errors;
+    }
+
+    function formatDataText(formData) {
+        const parts = [];
+        for (const [key, label] of Object.entries(aliasMap)) {
+            const value = formData.get(key);
+            if (value) {
+                parts.push(`${label}：${value}`);
+            }
+        }
+        return parts.join("；");
+    }
+
+    function buildResultText(a_text, score) {
+        let text = a_text + "\n";
+        text += `腐蚀防护系统质量评价得分为${score.toFixed(2)}，`;
+        if (score >= 90) {
+            text += "等级评价为“1”级，系统功能完好，满足设计要求，在6年的检验周期内能有效使用";
+        } else if (score >= 80) {
+            text += "等级评价为“2”级，系统基本完好但存在一些不影响防护效果的缺陷，能基本满足设计要求，3年~6年的检验周期内能使用";
+        } else if (score >= 70) {
+            text += "等级评价为“3”级，系统整体状况较差，存在缺陷，不能完全满足设计要求，在使用单位采取适当措施后，可在1年~3年检验周期内在限定的条件下使用";
+        } else {
+            text += "等级评价为“4”级，系统缺陷严重，不能满足设计要求，不能有效防止金属管体腐蚀，使用单位应采取重大维修";
+        }
+        return text;
+    }
+
+    function renderMatrix(rows) {
+        const tbody = document.querySelector("#matrixTable tbody");
+        tbody.innerHTML = "";
+        rows.forEach((row, i) => {
+            const tr = document.createElement("tr");
+            const th = document.createElement("th");
+            th.textContent = matrixHeaders[i];
+            tr.appendChild(th);
+            row.forEach(value => {
+                const td = document.createElement("td");
+                td.textContent = value.toFixed(3);
+                tr.appendChild(td);
             });
-        }
-        
-        function showCopyFeedback(message, type) {
-            const feedback = document.getElementById('copyFeedback');
-            feedback.textContent = message;
-            feedback.className = 'copy-feedback ' + type;
-            feedback.style.display = 'inline';
-            
-            setTimeout(() => {
-                feedback.style.display = 'none';
-            }, 2000);
-        }
-        
-        function copyLatex(latex) {
-            
-            // 复制到剪贴板
-            navigator.clipboard.writeText(latex)
-                .then(() => showCopyFeedback('LaTeX 已复制到剪贴板', 'success'))
-                .catch(err => {
-                    console.error('复制失败:', err);
-                    showCopyFeedback('复制失败，请手动复制', 'error');
-                });
-        }
-
-    
-
-        form.addEventListener("submit", async function (event) {
-            event.preventDefault();
-            errorBox.classList.remove("show");
-            resultBox.classList.remove("show");
-
-            const formData = new FormData(form);
-            const errors = validateForm(formData);
-
-            if (errors.length > 0) {
-                alert("输入校验未通过：\n" + errors.join("\n"));
-                return;
-            }
-
-            try {
-                const response = await fetch("/calculate", {
-                    method: "POST",
-                    body: formData
-                });
-                const data = await response.json();
-
-                if (!response.ok || !data.success) {
-                    throw new Error(data.error || "服务器计算失败");
-                }
-
-                document.getElementById("inputData").textContent = formatDataText(formData);
-                document.getElementById("resultText").textContent = buildResultText(data.a_text,data.score);
-                renderMatrix(data.matrix);
-                // 计算完成后，重写按钮的点击事件
-                document.getElementById('copyLatexBtn').onclick = () => copyLatex(data.matrix_latex);
-                resultBox.classList.add("show");
-                resultBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
-            } catch (err) {
-                alert("计算错误：\n" + err.message);
-            }
+            tbody.appendChild(tr);
         });
-    </script>
-</body>
-</html>
+    }
+
+    function showCopyFeedback(message, type) {
+        const feedback = document.getElementById('copyFeedback');
+        feedback.textContent = message;
+        feedback.className = 'copy-feedback ' + type;
+        feedback.style.display = 'inline';
+
+        setTimeout(() => {
+            feedback.style.display = 'none';
+        }, 2000);
+    }
+
+    function copyLatex(latex) {
+        navigator.clipboard.writeText(latex)
+            .then(() => showCopyFeedback('LaTeX 已复制到剪贴板', 'success'))
+            .catch(err => {
+                console.error('复制失败:', err);
+                showCopyFeedback('复制失败，请手动复制', 'error');
+            });
+    }
+
+    form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        errorBox.classList.remove("show");
+        resultBox.classList.remove("show");
+
+        const formData = new FormData(form);
+        const errors = validateForm(formData);
+
+        if (errors.length > 0) {
+            alert("输入校验未通过：\n" + errors.join("\n"));
+            return;
+        }
+
+        try {
+            const response = await fetch("/calculate", {
+                method: "POST",
+                body: formData
+            });
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || "服务器计算失败");
+            }
+
+            document.getElementById("inputData").textContent = formatDataText(formData);
+            document.getElementById("resultText").textContent = buildResultText(data.a_text, data.score);
+            renderMatrix(data.matrix);
+            document.getElementById('copyLatexBtn').onclick = () => copyLatex(data.matrix_latex);
+            resultBox.classList.add("show");
+            resultBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        } catch (err) {
+            alert("计算错误：\n" + err.message);
+        }
+    });
+</script>
+{% endblock %}
