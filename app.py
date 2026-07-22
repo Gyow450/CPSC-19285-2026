@@ -72,11 +72,11 @@ def admin_required(view):
 
 
 def login_required(view):
-    """未登录用户重定向到登录页"""
+    """未登录用户重定向到登录页，并记录原目标地址"""
     @wraps(view)
     def wrapped_view(*args, **kwargs):
         if not session.get("logged_in"):
-            return redirect(url_for("login"))
+            return redirect(url_for("login", next=request.url))
         return view(*args, **kwargs)
     return wrapped_view
 
@@ -105,9 +105,16 @@ def login():
             session["logged_in"] = True
             session["username"] = username
             session["is_admin"] = user.get("is_admin", False) if user else False
+
+            # 登录成功后跳回登录前请求的页面（仅允许同域地址）
+            next_url = request.form.get("next") or request.args.get("next")
+            if next_url:
+                from urllib.parse import urlparse
+                if urlparse(next_url).netloc == urlparse(request.url_root).netloc:
+                    return redirect(next_url)
             return redirect(url_for("index"))
-        return render_template("login.html", error="用户名或密码错误")
-    return render_template("login.html", error=None)
+        return render_template("login.html", error="用户名或密码错误", next=request.args.get("next"), message=request.args.get("message"))
+    return render_template("login.html", error=None, next=request.args.get("next"), message=request.args.get("message"))
 
 @app.route("/admin/users")
 @admin_required
@@ -186,6 +193,49 @@ def logout():
     return redirect(url_for("login"))
 
 
+@app.route("/change_password", methods=["GET", "POST"])
+@login_required
+def change_password():
+    """当前登录用户修改自己的密码"""
+    username = session.get("username")
+    error = None
+    success = None
+
+    if request.method == "POST":
+        old_password = request.form.get("old_password", "").strip()
+        new_password = request.form.get("new_password", "").strip()
+        confirm_password = request.form.get("confirm_password", "").strip()
+
+        if not new_password:
+            error = "新密码不能为空"
+        elif new_password != confirm_password:
+            error = "两次输入的新密码不一致"
+        elif not verify_user(username, old_password):
+            error = "原密码错误"
+        else:
+            conn = sqlite3.connect(DB_PATH)
+            conn.execute(
+                "UPDATE users SET password_hash = ? WHERE username = ?",
+                (generate_password_hash(new_password), username)
+            )
+            conn.commit()
+            conn.close()
+
+            # 普通用户修改本人密码后自动退出并跳回登录页
+            if not session.get("is_admin"):
+                session.clear()
+                return redirect(url_for("login", message="密码已修改，请使用新密码重新登录"))
+
+            success = "密码修改成功，下次登录请使用新密码"
+
+    return render_template(
+        "change_password.html",
+        error=error,
+        success=success,
+        active_page="change_password"
+    )
+
+
 @app.route("/calculate", methods=["POST"])
 @login_required
 def calculate():
@@ -232,6 +282,6 @@ def calculate():
         return jsonify({"success": False, "error": f"计算异常: {str(e)}"}), 500
 
 if __name__ == "__main__":
-    init_db()  # 初始化数据库
+    # init_db()  # 初始化数据库
     # print(f"DB_PATH: {os.path.abspath(DB_PATH)}")
     app.run(debug=True, port=5000)
