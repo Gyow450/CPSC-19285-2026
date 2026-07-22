@@ -288,6 +288,7 @@
                 {% if session.get("is_admin") %}
                 <li><a href="{{ url_for('user_list') }}" class="{% if active_page == 'users' %}active{% endif %}">用户管理</a></li>
                 {% endif %}
+                <li><a href="{{ url_for('change_password') }}" class="{% if active_page == 'change_password' %}active{% endif %}">修改密码</a></li>
                 <li><a href="{{ url_for('logout') }}">退出登录</a></li>
             </ul>
         </div>
