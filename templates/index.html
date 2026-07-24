@@ -388,7 +388,8 @@
                 </thead>
                 <tbody></tbody>
             </table>
-            <button id="copyLatexBtn" class="btn-copy" onclick="copyLatex()">复制LaTeX</button>
+            <button id="copyLatexBtn" class="btn-copy" onclick="copyLatex()">复制隶属矩阵LaTeX</button>
+            <button id="download_docx" class="btn-copy" onclick="downloadDocx()">下载为DOCX文件</button>
             <span id="copyFeedback" class="copy-feedback"></span>
         </div>
     </div>
@@ -531,6 +532,34 @@
                 console.error('复制失败:', err);
                 showCopyFeedback('复制失败，请手动复制', 'error');
             });
+    }
+
+    function downloadDocx() {
+        const formData = new FormData(form);
+        fetch('/download_docx', {
+            method: 'POST',
+            body: formData
+        })
+        .then(async response => {
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.error || '服务器响应异常');
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'evaluation_report.docx';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        })
+        .catch(err => {
+            alert('报告下载失败：\n' + err.message);
+        });
     }
 
     form.addEventListener("submit", async function (event) {
