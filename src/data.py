@@ -1,6 +1,6 @@
 import json
 from functools import lru_cache, total_ordering
-from typing import Sequence, Self
+from typing import Self
 
 import numpy as np
 import pandas as pd
@@ -44,7 +44,7 @@ SCORE_MID: NDArray[np.float64] = np.array([95, 85, 75, 65])
 SCORE_LOW: NDArray[np.float64] = np.array([90, 80, 70, 60])
 
 
-def _compute_membership(value: float, interval: Sequence[float]) -> NDArray[np.float64]:
+def _compute_membership(value: float, interval:NDArray[np.float64]) -> NDArray[np.float64]:
     """根据分段线性隶属函数计算 4 维隶属向量。"""
     a, b, c = float(interval[0]), float(interval[1]), float(interval[2])
     u0, u1 = (a + b) / 2.0, (b + c) / 2.0
@@ -79,7 +79,7 @@ class V_membership(np.ndarray):
     def __new__(
         cls,
         value: float | None = None,
-        interval: Sequence[float] | pd.Series | NDArray[np.float64] | None = None,
+        interval: pd.Series | NDArray[np.float64] | None = None,
         reverse: bool = False,
     ) -> "V_membership":
         obj = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float64).view(cls)
@@ -161,15 +161,15 @@ class PipCalculate:
             v_stable = V_membership()
         elif self.p.cp_exist == "有阴保":
             # 不存在动态干扰，且阴保全部有效，稳态干扰取无，否则取最大
-            v_stable = V_membership() if not abs(self.p.cp_value - 1.0) < 1e-5 else V_membership(reverse=True)
+            v_stable = V_membership() if self.p.cp_value and not abs(self.p.cp_value - 1.0) < 1e-5 else V_membership(reverse=True)
         elif self.p.p_move_noir:
             v_stable = V_membership() if self.p.p_move_noir <= 20.0 else V_membership(reverse=True)
-        elif self.p.soil_rho > 200.0:
-            v_stable = V_membership() if self.p.p_move_ir <= 300.0 else V_membership(reverse=True)
-        elif self.p.soil_rho < 15.0:
-            v_stable = V_membership() if self.p.p_move_ir <= 20.0 else V_membership(reverse=True)
+        elif self.p.soil_rho and self.p.soil_rho > 200.0:
+            v_stable = V_membership() if self.p.p_move_ir and self.p.p_move_ir <= 300.0 else V_membership(reverse=True)
+        elif self.p.soil_rho and self.p.soil_rho < 15.0:
+            v_stable = V_membership() if self.p.p_move_ir and self.p.p_move_ir <= 20.0 else V_membership(reverse=True)
         else:
-            v_stable = V_membership() if self.p.p_move_ir <= 1.5 * self.p.soil_rho else V_membership(reverse=True)
+            v_stable = V_membership() if self.p.p_move_ir and self.p.soil_rho and self.p.p_move_ir <= 1.5 * self.p.soil_rho else V_membership(reverse=True)
 
         v_dc = V_membership(self.p.dc_stray, config[f"直流干扰区间-{self.p.cp_exist}"])
         v_ac = V_membership(self.p.ac_stray, config["交流干扰区间"])
@@ -186,7 +186,7 @@ class PipCalculate:
         v_soil: V_membership,
         v_stray: V_membership,
         v_dra: V_membership,
-    ) -> tuple[NDArray[np.float64], float, NDArray[np.float64],CPSC_Data]:
+    ) -> tuple[NDArray[np.float64], str, float, NDArray[np.float64],CPSC_Data]:
         """返回隶属矩阵及其LaTeX公式，最终得分，结果向量，原输入参数对象"""
         R_matrix = np.array([v_coat, v_cp, v_soil, v_stray, v_dra])
         R_matrix = np.where(np.abs(R_matrix) < 1e-5, 0.0, R_matrix)
@@ -216,20 +216,20 @@ class CPSC_Data(BaseModel):
     """全体参数类"""
     model_config = {"populate_by_name": True}
 
-    pip_d: float | None = Field(default = None,alias="管径（mm）")
-    c_type: str | None = Field(default = None,alias="防腐层类型")
-    c_rg: float | None = Field(default = None,alias="防腐层绝缘电阻率Rg值（kΩ·㎡）")
-    c_p: float | None = Field(default = None,alias="防腐层破损点密度P值（处/100m）")
-    c_y: float | None = Field(default = None,alias="防腐层电流衰减率Y值（dB/m）")
-    cp_exist: str | None = Field(default = None,alias="是否建设有阴极保护")
-    cp_value: float | None = Field(default = None,alias="阴极保护率")
-    soil_n: float | None = Field(default = None,alias="土壤腐蚀性评价N值")
-    soil_rho: float | None = Field(default = None,alias="土壤电阻率（Ω·m）")
-    p_move_ir: float | None = Field(default = None,alias="含IR降的电位正向偏移（mV）")
-    p_move_noir: float | None = Field(default = None,alias="无IR降的电位正向偏移（mV）")
-    dc_stray: float | None = Field(default = None,alias="阴保管道电位正于要求的比例或无阴保管道正于自然电位20mV的比例")
-    ac_stray: float | None = Field(default = None,alias="交流电流密度")
-    drainage: str | None = Field(default = None,alias="排流效果")
+    pip_d: float | None = Field(default = None,alias="管径（mm）",json_schema_extra={"group": "管道基本信息"})
+    c_type: str | None = Field(default = None,alias="防腐层类型",json_schema_extra={"group": "管道基本信息"})
+    c_rg: float | None = Field(default = None,alias="防腐层绝缘电阻率Rg值（kΩ·㎡）",json_schema_extra={"group": "外防腐层状况"})
+    c_p: float | None = Field(default = None,alias="防腐层破损点密度P值（处/100m）",json_schema_extra={"group": "外防腐层状况"})
+    c_y: float | None = Field(default = None,alias="防腐层电流衰减率Y值（dB/m）",json_schema_extra={"group": "外防腐层状况"})
+    cp_exist: str | None = Field(default = None,alias="是否建设有阴极保护",json_schema_extra={"group": "阴极保护有效性"})
+    cp_value: float | None = Field(default = None,alias="阴极保护率",json_schema_extra={"group": "阴极保护有效性"})
+    soil_n: float | None = Field(default = None,alias="土壤腐蚀性评价N值",json_schema_extra={"group": "土壤腐蚀性"})
+    soil_rho: float | None = Field(default = None,alias="土壤电阻率（Ω·m）",json_schema_extra={"group": "杂散电流干扰"})
+    p_move_ir: float | None = Field(default = None,alias="含IR降的电位正向偏移（mV）",json_schema_extra={"group": "杂散电流干扰"})
+    p_move_noir: float | None = Field(default = None,alias="无IR降的电位正向偏移（mV）",json_schema_extra={"group": "杂散电流干扰"})
+    dc_stray: float | None = Field(default = None,alias="阴保管道电位正于要求的比例或无阴保管道正于自然电位20mV的比例",json_schema_extra={"group": "杂散电流干扰"})
+    ac_stray: float | None = Field(default = None,alias="交流电流密度",json_schema_extra={"group": "杂散电流干扰"})
+    drainage: str | None = Field(default = None,alias="排流效果",json_schema_extra={"group": "排流效果"})
 
     # def __post_init__(self):
     #     errors = self._validate()

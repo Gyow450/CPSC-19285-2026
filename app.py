@@ -1,9 +1,14 @@
 from functools import wraps
+from io import BytesIO
 import os
 import sqlite3
+from typing import IO
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from docx import Document
+from docx.document import Document as DocumentObject
+from docx.shared import Pt
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file
 
 from src.data import CPSC_Data, PipCalculate
 
@@ -280,6 +285,137 @@ def calculate():
         return jsonify({"success": False, "error": str(e)}), 400
     except Exception as e:
         return jsonify({"success": False, "error": f"计算异常: {str(e)}"}), 500
+
+
+_LABELS = {
+    "pip_d": "管径（mm）",
+    "c_type": "防腐层类型",
+    "c_rg": "防腐层绝缘电阻率Rg值（kΩ·m²）",
+    "c_p": "防腐层破损点密度P值（处/100m）",
+    "c_y": "防腐层电流衰减率Y值（dB/m）",
+    "cp_exist": "是否建设有阴极保护",
+    "cp_value": "阴极保护率",
+    "soil_n": "土壤腐蚀性评价N值",
+    "soil_rho": "土壤电阻率（Ω·m）",
+    "p_move_ir": "含IR降的电位正向偏移（mV）",
+    "p_move_noir": "无IR降的电位正向偏移（mV）",
+    "dc_stray": "阴保管道电位正于要求的比例（无阴保管道正于自然电位20mV的比例）%",
+    "ac_stray": "交流电流密度（A/m²）",
+    "drainage": "排流效果",
+}
+
+_MATRIX_HEADERS = [
+    "外防腐层状况",
+    "阴极保护有效性",
+    "土壤腐蚀性",
+    "杂散电流干扰",
+    "排流效果",
+]
+
+
+def _build_docx(params: dict, score: float, matrix: list, a_text: str) -> DocumentObject:
+    """根据输入参数和评价结果生成 Word 报告。"""
+    doc = Document()
+
+    title = doc.add_heading("埋地钢质管道腐蚀防护系统质量等级评价报告", level=0)
+    title.alignment = 1  # 居中
+
+    doc.add_heading("一、输入参数", level=1)
+    table = doc.add_table(rows=1, cols=2)
+    table.style = "Light Grid Accent 1"
+    hdr = table.rows[0].cells
+    hdr[0].text = "项目"
+    hdr[1].text = "数值"
+    for key, label in _LABELS.items():
+        value = params.get(key)
+        if value is None:
+            continue
+        row = table.add_row().cells
+        row[0].text = label
+        row[1].text = str(value)
+
+    doc.add_heading("二、评价结果", level=1)
+    if score >= 90:
+        level = "1"
+        desc = "系统功能完好，满足设计要求，在6年的检验周期内能有效使用。"
+    elif score >= 80:
+        level = "2"
+        desc = "系统基本完好但存在一些不影响防护效果的缺陷，能基本满足设计要求，3年~6年的检验周期内能使用。"
+    elif score >= 70:
+        level = "3"
+        desc = "系统整体状况较差，存在缺陷，不能完全满足设计要求，在使用单位采取适当措施后，可在1年~3年检验周期内在限定的条件下使用。"
+    else:
+        level = "4"
+        desc = "系统缺陷严重，不能满足设计要求，不能有效防止金属管体腐蚀，使用单位应采取重大维修。"
+
+    doc.add_paragraph(f"腐蚀防护系统质量评价得分：{score:.2f}")
+    doc.add_paragraph(f"等级评价：{level} 级")
+    doc.add_paragraph(f"评价说明：{desc}")
+    doc.add_paragraph(a_text)
+
+    doc.add_heading("三、隶属矩阵", level=1)
+    mtable = doc.add_table(rows=1, cols=5)
+    mtable.style = "Light Grid Accent 1"
+    headers = ["评价指标", "等级1", "等级2", "等级3", "等级4"]
+    for i, h in enumerate(headers):
+        mtable.rows[0].cells[i].text = h
+    for i, row in enumerate(matrix):
+        cells = mtable.add_row().cells
+        cells[0].text = _MATRIX_HEADERS[i]
+        for j, val in enumerate(row):
+            cells[j + 1].text = f"{val:.3f}"
+
+    return doc
+
+
+@app.route("/download_docx", methods=["POST"])
+@login_required
+def download_docx():
+    """根据表单数据生成评价报告 DOCX 并提供下载。"""
+    try:
+        params = {
+            "pip_d": _get_float(request.form, "pip_d"),
+            "c_type": _get_str(request.form, "coat_type"),
+            "c_rg": _get_float(request.form, "rg_value"),
+            "c_p": _get_float(request.form, "p_value"),
+            "c_y": _get_float(request.form, "y_value"),
+            "cp_exist": _get_str(request.form, "cp_exist"),
+            "cp_value": _get_float(request.form, "cp_rate"),
+            "soil_n": _get_float(request.form, "soil_n"),
+            "soil_rho": _get_float(request.form, "soil_rho"),
+            "p_move_ir": _get_float(request.form, "stable_stray_ir"),
+            "p_move_noir": _get_float(request.form, "stable_stray_noir"),
+            "dc_stray": _get_float(request.form, "dc_stray"),
+            "ac_stray": _get_float(request.form, "ac_stray"),
+            "drainage": _get_str(request.form, "drainage"),
+        }
+
+        if params["cp_value"]:
+            params["cp_value"] = params["cp_value"] / 100.0
+        if params["dc_stray"]:
+            params["dc_stray"] = params["dc_stray"] / 100.0
+
+        data_obj = CPSC_Data(**params)
+        calc = PipCalculate(data_obj)
+        matrix, _, score, a_vec, _ = calc.calculate()
+        a_text = f"结果向量A = [ {', '.join(f'{x:.4f}' for x in a_vec)} ]"
+
+        doc = _build_docx(params, float(score), matrix.tolist(), a_text)
+        buffer = BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+
+        return send_file(
+            buffer,
+            mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            as_attachment=True,
+            download_name="evaluation_report.docx",
+        )
+    except ValueError as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"success": False, "error": f"生成报告异常: {str(e)}"}), 500
+
 
 if __name__ == "__main__":
     # init_db()  # 初始化数据库
