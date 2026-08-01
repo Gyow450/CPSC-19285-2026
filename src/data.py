@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 from scipy.interpolate import CubicSpline
-from pydantic import BaseModel, Field,model_validator
+from pydantic import BaseModel, Field,model_validator, ConfigDict
 
 from utils import resource_path
 
@@ -214,14 +214,14 @@ class PipCalculate:
 # @dataclass
 class CPSC_Data(BaseModel):
     """全体参数类"""
-    model_config = {"populate_by_name": True}
-
+    model_config = ConfigDict(populate_by_name=True,extra = "forbid")
+    
     pip_d: float | None = Field(default = None,alias="管径（mm）",json_schema_extra={"group": "管道基本信息"})
     c_type: str | None = Field(default = None,alias="防腐层类型",json_schema_extra={"group": "管道基本信息"})
+    cp_exist: str | None = Field(default = None,alias="是否建设有阴极保护",json_schema_extra={"group": "管道基本信息"})
     c_rg: float | None = Field(default = None,alias="防腐层绝缘电阻率Rg值（kΩ·㎡）",json_schema_extra={"group": "外防腐层状况"})
     c_p: float | None = Field(default = None,alias="防腐层破损点密度P值（处/100m）",json_schema_extra={"group": "外防腐层状况"})
     c_y: float | None = Field(default = None,alias="防腐层电流衰减率Y值（dB/m）",json_schema_extra={"group": "外防腐层状况"})
-    cp_exist: str | None = Field(default = None,alias="是否建设有阴极保护",json_schema_extra={"group": "阴极保护有效性"})
     cp_value: float | None = Field(default = None,alias="阴极保护率",json_schema_extra={"group": "阴极保护有效性"})
     soil_n: float | None = Field(default = None,alias="土壤腐蚀性评价N值",json_schema_extra={"group": "土壤腐蚀性"})
     soil_rho: float | None = Field(default = None,alias="土壤电阻率（Ω·m）",json_schema_extra={"group": "杂散电流干扰"})
@@ -231,23 +231,17 @@ class CPSC_Data(BaseModel):
     ac_stray: float | None = Field(default = None,alias="交流电流密度",json_schema_extra={"group": "杂散电流干扰"})
     drainage: str | None = Field(default = None,alias="排流效果",json_schema_extra={"group": "排流效果"})
 
-    # def __post_init__(self):
-    #     errors = self._validate()
-    #     if errors:
-    #         raise ValueError("；".join(errors))
     @model_validator(mode="after")
     def _validate(self) -> Self:
         errors: list[str] = []
-        if not (self.pip_d and self.c_type):
-            errors.append("缺少管径,防腐层类型")
+        if not (self.pip_d and self.c_type and self.cp_exist):
+            errors.append("缺少管径,防腐层类型,阴极保护建设情况")
         if not (self.c_rg or self.c_p or self.c_y):
             errors.append("缺少外防腐层评价")
         if not self.dc_stray and not self.ac_stray:
             if self.cp_exist == "无阴保" and not self.p_move_noir and not (self.soil_rho and self.p_move_ir):
                 errors.append("缺少杂散电流评价")
-        if not self.cp_exist:
-            errors.append("缺少是否有阴极保护")
-        if not self.cp_value and self.cp_exist == "有阴保":
+        if self.cp_exist == "有阴保" and not self.cp_value :
             errors.append("缺少阴极保护率")
         if not self.soil_n:
             errors.append("缺少土壤腐蚀性得分")

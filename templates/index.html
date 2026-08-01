@@ -237,10 +237,50 @@
     </div>
 
     <form id="evaluateForm">
+        <!-- 管道基本信息 -->
+        <fieldset>
+            <legend>管道基本信息</legend>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="pip_d">管径（mm）</label>
+                    <input type="number" id="pip_d" name="pip_d" min="25" max="10000" step="1" placeholder="请输入25-10000的数值" required>
+                </div>
+                
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>防腐层类型</label>
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="coat_type" value="PE防腐层" required>
+                            PE防腐层
+                        </label>
+                        <label>
+                            <input type="radio" name="coat_type" value="沥青防腐层">
+                            沥青防腐层
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="cp_exist">是否建设有阴极保护</label>
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="cp_exist" value="有阴保" required>
+                            有阴极保护
+                        </label>
+                        <label>
+                            <input type="radio" name="cp_exist" value="无阴保">
+                            未实施阴极保护
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </fieldset>
+        
         <!-- 防腐层参数 -->
         <fieldset>
             <legend>防腐层参数</legend>
-            <div class="form-row">
+            {# <div class="form-row">
                 <div class="radio-group">
                     <label>
                         <input type="radio" name="coat_type" value="PE防腐层" required>
@@ -251,22 +291,22 @@
                         沥青防腐层
                     </label>
                 </div>
-            </div>
+            </div> #}
             <div class="form-row">
-                <div class="form-group">
+                {# <div class="form-group">
                     <label for="pip_d">管径（mm）</label>
                     <input type="number" id="pip_d" name="pip_d" min="25" max="10000" step="1" placeholder="请输入25-10000的数值">
-                </div>
+                </div> #}
                 <div class="form-group">
                     <label for="rg_value">Rg值（kΩ·m²）</label>
                     <input type="number" id="rg_value" name="rg_value" min="0.1" max="10000" step="0.01" placeholder="请输入0.1-10000的数值">
                 </div>
-            </div>
-            <div class="form-row">
                 <div class="form-group">
                     <label for="y_value">Y值（dB/m）</label>
                     <input type="number" id="y_value" name="y_value" min="0.0" max="0.5" step="0.001" placeholder="请输入0.0-0.5的数值">
                 </div>
+            </div>
+            <div class="form-row">               
                 <div class="form-group">
                     <label for="p_value">P值（处/100m）</label>
                     <input type="number" id="p_value" name="p_value" min="0.0" max="5.0" step="0.1" placeholder="请输入0.0-5.0的数值">
@@ -299,18 +339,7 @@
         <!-- 杂散电流干扰 -->
         <fieldset>
             <legend>杂散电流干扰</legend>
-            <div class="form-row">
-                <div class="radio-group">
-                    <label>
-                        <input type="radio" name="cp_exist" value="有阴保" required>
-                        有阴极保护
-                    </label>
-                    <label>
-                        <input type="radio" name="cp_exist" value="无阴保">
-                        未实施阴极保护
-                    </label>
-                </div>
-            </div>
+            
             <div class="form-row">
                 <div class="form-group">
                     <label for="soil_rho">土壤电阻率（Ω·m）</label>
@@ -332,6 +361,8 @@
                     <label for="dc_stray">动态直流干扰-电位正于阴保要求（或正于自然电位20mV）的占比%</label>
                     <input type="number" id="dc_stray" name="dc_stray" min="0.0" max="100.0" step="0.1" placeholder="请输入0.1-100.0的数值">
                 </div>
+            </div>
+             <div class="form-row">
                 <div class="form-group">
                     <label for="ac_stray">交流电流密度（A/m²）</label>
                     <input type="number" id="ac_stray" name="ac_stray" min="0" max="1000" step="0.01" placeholder="请输入0-1000的数值">
@@ -389,7 +420,7 @@
                 <tbody></tbody>
             </table>
             <button id="copyLatexBtn" class="btn-copy" onclick="copyLatex()">复制隶属矩阵LaTeX</button>
-            <button id="download_docx" class="btn-copy" onclick="downloadDocx()">下载为DOCX文件</button>
+            <button id="download_docx" class="btn-copy" onclick="downloadDocx()">下载DOCX文件</button>
             <span id="copyFeedback" class="copy-feedback"></span>
         </div>
     </div>

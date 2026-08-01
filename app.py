@@ -19,6 +19,10 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-producti
 # 首次运行后建议立即修改默认密码
 DB_PATH = "users.db"
 
+# 获取 app.py 所在目录，和启动位置无关
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATE_PATH = os.path.join(BASE_DIR, r"docx_templates\模板.docx")
+
 def init_db()->None:
     """初始化数据库，创建用户表并插入默认管理员"""
     conn = sqlite3.connect(DB_PATH)
@@ -315,55 +319,7 @@ _MATRIX_HEADERS = [
 
 def _build_docx(params: dict, score: float, matrix: list, a_text: str) -> DocumentObject:
     """根据输入参数和评价结果生成 Word 报告。"""
-    doc = Document()
-
-    title = doc.add_heading("埋地钢质管道腐蚀防护系统质量等级评价报告", level=0)
-    title.alignment = 1  # 居中
-
-    doc.add_heading("一、输入参数", level=1)
-    table = doc.add_table(rows=1, cols=2)
-    table.style = "Light Grid Accent 1"
-    hdr = table.rows[0].cells
-    hdr[0].text = "项目"
-    hdr[1].text = "数值"
-    for key, label in _LABELS.items():
-        value = params.get(key)
-        if value is None:
-            continue
-        row = table.add_row().cells
-        row[0].text = label
-        row[1].text = str(value)
-
-    doc.add_heading("二、评价结果", level=1)
-    if score >= 90:
-        level = "1"
-        desc = "系统功能完好，满足设计要求，在6年的检验周期内能有效使用。"
-    elif score >= 80:
-        level = "2"
-        desc = "系统基本完好但存在一些不影响防护效果的缺陷，能基本满足设计要求，3年~6年的检验周期内能使用。"
-    elif score >= 70:
-        level = "3"
-        desc = "系统整体状况较差，存在缺陷，不能完全满足设计要求，在使用单位采取适当措施后，可在1年~3年检验周期内在限定的条件下使用。"
-    else:
-        level = "4"
-        desc = "系统缺陷严重，不能满足设计要求，不能有效防止金属管体腐蚀，使用单位应采取重大维修。"
-
-    doc.add_paragraph(f"腐蚀防护系统质量评价得分：{score:.2f}")
-    doc.add_paragraph(f"等级评价：{level} 级")
-    doc.add_paragraph(f"评价说明：{desc}")
-    doc.add_paragraph(a_text)
-
-    doc.add_heading("三、隶属矩阵", level=1)
-    mtable = doc.add_table(rows=1, cols=5)
-    mtable.style = "Light Grid Accent 1"
-    headers = ["评价指标", "等级1", "等级2", "等级3", "等级4"]
-    for i, h in enumerate(headers):
-        mtable.rows[0].cells[i].text = h
-    for i, row in enumerate(matrix):
-        cells = mtable.add_row().cells
-        cells[0].text = _MATRIX_HEADERS[i]
-        for j, val in enumerate(row):
-            cells[j + 1].text = f"{val:.3f}"
+    doc = Document(TEMPLATE_PATH)
 
     return doc
 
@@ -409,7 +365,7 @@ def download_docx():
             buffer,
             mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             as_attachment=True,
-            download_name="evaluation_report.docx",
+            download_name="腐蚀系统等级评价.docx",
         )
     except ValueError as e:
         return jsonify({"success": False, "error": str(e)}), 400
