@@ -10,11 +10,9 @@ TEMPLATE_PATH = os.path.join(BASE_DIR, r"docx_templates\模板.docx")
 
 def docx_edit(doc: DocumentObject, score:float, matrix: list[list] ,ver: list)-> DocumentObject:
     matrix_values_list = [ x for row in matrix for x in row]
-    # v_values_list = [ x  for x in ver]
     values_list = matrix_values_list + ver + [score]
-    idx =0 
     mts = doc.element.xpath('.//m:t[text()="PMR"]')
-    for mt in mts:
+    for idx,mt in enumerate(mts):
         mt.text = str(values_list[idx])
     return doc
 
