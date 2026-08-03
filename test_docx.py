@@ -15,12 +15,7 @@ def docx_edit(doc: DocumentObject, score:float, matrix: list[list] ,ver: list)->
     idx =0 
     mts = doc.element.xpath('.//m:t[text()="PMR"]')
     for mt in mts:
-        if mt.text == 'PMR':
-            if idx < len(values_list):
-                mt.text = str(values_list[idx])
-                idx += 1
-            else:
-                break
+        mt.text = str(values_list[idx])
     return doc
 
 if __name__ == "__main__":
